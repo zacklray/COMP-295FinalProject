@@ -1,0 +1,81 @@
+---
+title: "Project Proposal"
+author: "Zach Ray, Daniel Henry, Alex Cadigan"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+# Loads necessary libraries
+library(tidyverse)
+library(rvest)
+```
+
+```{r}
+webParser <- read_html("https://hornets.kzoo.edu/sports/mten/history/All_Time_Scores")
+
+# Initialize data storage tibble
+data <- data.frame()
+
+# Loops through the website data and scrapes important variables
+for (i in 1:43) {
+  # Many conditional statements are needed since the data is not formatted consistently
+  if (i == 1) {
+    season <- html_nodes(webParser, paste("p:nth-child(", 3 * i - 2, ") strong", sep = "")) %>% html_text()
+    date <- html_nodes(webParser, ".xl63") %>% html_text()
+    team <- html_nodes(webParser, ".xl63+ .xl64") %>% html_text()
+    location <- html_nodes(webParser, ".xl64:nth-child(3)") %>% html_text()
+    result <- html_nodes(webParser, ".xl64~ .xl64+ .xl64") %>% html_text()
+  }
+  else if (i == 9) {
+    season <- html_nodes(webParser, paste("p:nth-child(", 3 * i - 2, ") strong", sep = "")) %>% html_text()
+    date <- html_nodes(webParser, paste("table:nth-child(", 3 * i - 1, ") .xl65", sep = "")) %>% html_text()
+    team <- html_nodes(webParser, paste("table:nth-child(", 3 * i - 1, ") .xl65+ .xl66")) %>% html_text()
+    location <- html_nodes(webParser, paste("table:nth-child(", 3 * i - 1, ") .xl66:nth-child(3)")) %>% html_text()
+    result <- html_nodes(webParser, paste("table:nth-child(", 3 * i - 1, ") .xl66~ .xl66+ td")) %>% html_text()
+  }
+  else if (i < 39) {
+    season <- html_nodes(webParser, paste("p:nth-child(", 3 * i - 2, ") strong", sep = "")) %>% html_text()
+    date <- html_nodes(webParser, paste("table:nth-child(", 3 * i - 1, ") .xl65", sep = "")) %>% html_text()
+    team <- html_nodes(webParser, paste("table:nth-child(", 3 * i - 1, ") .xl65+ .xl66")) %>% html_text()
+    location <- html_nodes(webParser, paste("table:nth-child(", 3 * i - 1, ") .xl66:nth-child(3)")) %>% html_text()
+    result <- html_nodes(webParser, paste("table:nth-child(", 3 * i - 1, ") .xl66~ .xl66+ .xl66")) %>% html_text()
+  }
+  else if (i == 39) {
+    season <- html_nodes(webParser, paste("p:nth-child(", 3 * i - 2, ") strong", sep = "")) %>% html_text()
+    date <- html_nodes(webParser, "p:nth-child(116)") %>% html_text()
+    team <- html_nodes(webParser, "p:nth-child(116)") %>% html_text()
+    location <- html_nodes(webParser, "p:nth-child(116)") %>% html_text()
+    result <- html_nodes(webParser, "p:nth-child(116)") %>% html_text()
+  }
+  else {
+    season <- html_nodes(webParser, paste("p:nth-child(", 3 * i - 3, ") strong", sep = "")) %>% html_text()
+    date <- html_nodes(webParser, paste("table:nth-child(", 3 * i - 2, ") .xl65", sep = "")) %>% html_text()
+    team <- html_nodes(webParser, paste("table:nth-child(", 3 * i - 2, ") .xl65+ .xl66")) %>% html_text()
+    location <- html_nodes(webParser, paste("table:nth-child(", 3 * i - 2, ") .xl66:nth-child(3)")) %>% html_text()
+    result <- html_nodes(webParser, paste("table:nth-child(", 3 * i - 2, ") .xl66~ .xl66+ .xl66")) %>% html_text()
+  }
+  
+  # Adds data to storage tibble
+  data <- bind_rows(data, tibble(season, date, team, location, result))
+}
+```
+
+```{r} 
+# Tidy's up the data
+
+# Replaces empty dates with NA values
+for (row in 1:nrow(data)) {
+  if (!str_detect(data[row, "date"], "/")) {
+    data[row, "date"] = NA
+  }
+}
+data <- mutate(data, year = parse_number(substr(season, 1, 4))) %>% mutate(overallWins = parse_number(sub(".*\\( *(.*?) *-.*", "\\1", season))) %>% mutate(overallLosses = parse_number(sub(".*- *(.*?) *,.*", "\\1", season))) %>% mutate(MIAAWins = parse_number(sub(".*, *(.*?) *-.*", "\\1", season))) %>% mutate(MIAALosses = parse_number(sub(".*- *(.*?) *M.*", "\\1", season))) %>% fill(date, .direction = c("down"))
+
+?fill()
+test <- filter(data, year != 1989 & year != 1988 & year != 1987 & year != 1985 & year != 1984 & year != 1983 & year != 1982 & year != 1981 & year != 1980 & year != 1979 & year != 1978 & year != 1976 & year != 1974 & year != 1973 & year != 1972 & year != 1971 & year != 1970 & year != 1969) %>% fill(date, .direction = c("down"))
+test
+
+# Stores results of scraping in a .csv file
+write.csv(data, "data/TennisRecords.csv")
+```
