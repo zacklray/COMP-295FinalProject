@@ -78,4 +78,16 @@ test
 
 # Stores results of scraping in a .csv file
 write.csv(data, "data/TennisRecords.csv")
+head(data)
 ```
+```{r}
+webParse <- read_html("https://hornets.kzoo.edu/sports/mten/history/Mens_Tennis_Season_Records")
+rank= data.frame()
+
+    rankyear <- html_nodes(webParse,paste("tr+ tr td:nth-child(1)") ) %>% html_text()
+    ranking <- html_nodes(webParse,paste("tr+ tr td:nth-child(4)") ) %>% html_text()
+                     rank <- bind_rows(rank, tibble(rankyear,ranking))
+                                     
+rank
+```
+
